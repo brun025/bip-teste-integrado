@@ -6,11 +6,8 @@ import com.example.backend.enums.TransferenciaStatus;
 import com.example.backend.integration.BeneficioEjbClient;
 import com.example.backend.repository.TransferenciaLogRepository;
 import com.example.backend.service.TransferenciaService;
-import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +29,6 @@ public class TransferenciaServiceImpl implements TransferenciaService {
     }
 
     @Override
-    @Transactional
     public void executarTransferencia(TransferenciaRequest request) {
         String idempotencyKey = request.getIdempotencyKey();
 
@@ -45,31 +41,35 @@ public class TransferenciaServiceImpl implements TransferenciaService {
             TransferenciaLog log = existingLog.get();
 
             if (log.foiProcessadaComSucesso()) {
-                logger.info("[TRANSFERENCIA] Já processada anteriormente - KEY={}", idempotencyKey);
+                logger.info("[TRANSFERENCIA] ✅ Já processada anteriormente - KEY={}", idempotencyKey);
                 return;
             }
 
             if (log.getStatus() == TransferenciaStatus.PROCESSANDO) {
-                logger.warn("[TRANSFERENCIA] Já está sendo processada por outra thread - KEY={}", idempotencyKey);
+                logger.warn("[TRANSFERENCIA] ⚠️ Já está sendo processada por outra thread - KEY={}", idempotencyKey);
                 throw new IllegalStateException("Transferência já está sendo processada");
             }
 
-            logger.info("[TRANSFERENCIA] Retry de transferência que falhou - KEY={}", idempotencyKey);
+            logger.info("[TRANSFERENCIA] 🔄 Retry de transferência que falhou - KEY={}", idempotencyKey);
         }
 
         TransferenciaLog log = criarLogTransferencia(request);
 
         try {
-            executarTransferenciaComRetry(request);
+            ejbClient.transfer(
+                    request.getFromId(),
+                    request.getToId(),
+                    request.getAmount()
+            );
 
             atualizarLogSucesso(log.getId());
 
-            logger.info("[TRANSFERENCIA] Concluída com sucesso - KEY={}", idempotencyKey);
+            logger.info("[TRANSFERENCIA] ✅ Concluída com sucesso - KEY={}", idempotencyKey);
 
         } catch (Exception e) {
             atualizarLogErro(log.getId(), e.getMessage());
 
-            logger.error("[TRANSFERENCIA] Erro - KEY={}: {}", idempotencyKey, e.getMessage());
+            logger.error("[TRANSFERENCIA] ❌ Erro - KEY={}: {}", idempotencyKey, e.getMessage());
             throw e;
         }
     }
@@ -85,24 +85,6 @@ public class TransferenciaServiceImpl implements TransferenciaService {
         log = logRepository.save(log);
         logger.debug("[TRANSFERENCIA] Log criado - ID={}", log.getId());
         return log;
-    }
-
-    @Retryable(
-            retryFor = OptimisticLockException.class,
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 100, multiplier = 2)
-    )
-    protected void executarTransferenciaComRetry(TransferenciaRequest request) {
-        try {
-            ejbClient.transfer(
-                    request.getFromId(),
-                    request.getToId(),
-                    request.getAmount()
-            );
-        } catch (OptimisticLockException e) {
-            logger.warn("[TRANSFERENCIA] OptimisticLockException - retry automático");
-            throw e;
-        }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

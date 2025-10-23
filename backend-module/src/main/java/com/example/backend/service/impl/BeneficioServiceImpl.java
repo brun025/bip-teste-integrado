@@ -10,6 +10,7 @@ import com.example.backend.service.BeneficioService;
 import com.example.backend.service.TransferenciaService;
 import com.example.ejb.Beneficio;
 import jakarta.persistence.OptimisticLockException;
+import org.hibernate.StaleStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.retry.annotation.Backoff;
@@ -67,9 +68,9 @@ public class BeneficioServiceImpl implements BeneficioService {
     @Override
     @Transactional
     @Retryable(
-            retryFor = OptimisticLockException.class,
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 100, multiplier = 2)
+            retryFor = {OptimisticLockException.class, StaleStateException.class},
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 50, multiplier = 2, maxDelay = 500)
     )
     public BeneficioResponse update(Long id, BeneficioCreateRequest request) {
         logger.info("Atualizando benefício ID: {}", id);

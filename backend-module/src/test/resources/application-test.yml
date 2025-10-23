@@ -1,0 +1,6 @@
+spring:
+  flyway:
+    enabled: true  # ← HABILITAR!
+  jpa:
+    hibernate:
+      ddl-auto: validate  # ← Usar validate
