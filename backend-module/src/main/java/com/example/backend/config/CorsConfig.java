@@ -14,7 +14,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")  // Aplica a todos os endpoints /api
-                        .allowedOrigins("http://localhost:4200")  // Em produção especifique seus domínios
+                        .allowedOrigins("http://localhost:8081")  // Em produção especifique seus domínios
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true)

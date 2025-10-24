@@ -23,6 +23,25 @@ services:
     networks:
       - beneficios-network
 
+  frontend:
+    build:
+      context: ../frontend-angular
+      dockerfile: Dockerfile
+    container_name: frontend-angular
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    depends_on:
+      - postgres
+    networks:
+      - beneficios-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
 volumes:
   postgres_data:
     driver: local
