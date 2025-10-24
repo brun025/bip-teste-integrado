@@ -1,0 +1,68 @@
+<div class="container">
+  <div class="page-header">
+    <h1>🏦 Gestão de Benefícios</h1>
+    <button class="btn btn-primary" (click)="onCreate()" [disabled]="isLoading()">
+      ➕ Novo Benefício
+    </button>
+  </div>
+
+  <div *ngIf="isLoading()" class="spinner"></div>
+
+  <div *ngIf="!isLoading() && beneficios().length > 0" class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nome</th>
+          <th>Descrição</th>
+          <th>Valor</th>
+          <th>Status</th>
+          <th class="text-center">Ações</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let beneficio of beneficios()">
+          <td>{{ beneficio.id }}</td>
+          <td><strong>{{ beneficio.nome }}</strong></td>
+          <td>{{ beneficio.descricao }}</td>
+          <td>{{ formatCurrency(beneficio.valor) }}</td>
+          <td>
+              <span [class]="beneficio.ativo ? 'badge badge-active' : 'badge badge-inactive'">
+                {{ beneficio.ativo ? '✅ Ativo' : '❌ Inativo' }}
+              </span>
+          </td>
+          <td class="text-center">
+            <button
+              class="btn-icon"
+              (click)="onEdit(beneficio.id)"
+              title="Editar">
+              ✏️
+            </button>
+            <button
+              class="btn-icon"
+              (click)="onTransfer(beneficio)"
+              title="Transferir">
+              💸
+            </button>
+            <button
+              class="btn-icon"
+              (click)="onDelete(beneficio)"
+              title="Excluir">
+              🗑️
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="!isLoading() && beneficios().length === 0" class="empty-state">
+    <div class="empty-state-icon">📭</div>
+    <p>Nenhum benefício cadastrado.</p>
+    <button class="btn btn-primary mt-2" (click)="onCreate()">
+      ➕ Criar Primeiro Benefício
+    </button>
+  </div>
+</div>

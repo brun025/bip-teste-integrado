@@ -41,7 +41,7 @@ public class TransferenciaServiceImpl implements TransferenciaService {
             TransferenciaLog log = existingLog.get();
 
             if (log.foiProcessadaComSucesso()) {
-                logger.info("[TRANSFERENCIA] ✅ Já processada anteriormente - KEY={}", idempotencyKey);
+                logger.info("[TRANSFERENCIA] Já processada anteriormente - KEY={}", idempotencyKey);
                 return;
             }
 
@@ -64,12 +64,12 @@ public class TransferenciaServiceImpl implements TransferenciaService {
 
             atualizarLogSucesso(log.getId());
 
-            logger.info("[TRANSFERENCIA] ✅ Concluída com sucesso - KEY={}", idempotencyKey);
+            logger.info("[TRANSFERENCIA] Concluída com sucesso - KEY={}", idempotencyKey);
 
         } catch (Exception e) {
             atualizarLogErro(log.getId(), e.getMessage());
 
-            logger.error("[TRANSFERENCIA] ❌ Erro - KEY={}: {}", idempotencyKey, e.getMessage());
+            logger.error("[TRANSFERENCIA] Erro - KEY={}: {}", idempotencyKey, e.getMessage());
             throw e;
         }
     }

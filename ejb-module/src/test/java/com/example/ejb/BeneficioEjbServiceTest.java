@@ -1,4 +1,4 @@
-package com.example.ejb;  // ← PACOTE CORRETO (ejb, não backend.ejb)
+package com.example.ejb;
 
 import com.example.ejb.exception.BeneficioNotFoundException;
 import com.example.ejb.exception.SaldoInsuficienteException;
@@ -19,19 +19,6 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Teste Unitário para BeneficioEjbService (Sistema Legado).
- *
- * LOCALIZAÇÃO: ejb-module/src/test/java/com/example/ejb/
- *
- * OBJETIVO:
- * - Testar lógica de negócio do EJB isoladamente
- * - Validar regras de transferência (saldo, benefício ativo, etc)
- * - Verificar Optimistic Locking
- * - Testar validações de parâmetros
- *
- * @author Senior Java Developer
- */
 @ExtendWith(MockitoExtension.class)
 class BeneficioEjbServiceTest {
 
@@ -46,7 +33,6 @@ class BeneficioEjbServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Benefício origem com saldo suficiente
         origem = new Beneficio(
                 "Benefício Origem",
                 "Para débito",
@@ -56,7 +42,6 @@ class BeneficioEjbServiceTest {
         origem.setVersion(0L);
         origem.setAtivo(true);
 
-        // Benefício destino
         destino = new Beneficio(
                 "Benefício Destino",
                 "Para crédito",
@@ -67,12 +52,10 @@ class BeneficioEjbServiceTest {
         destino.setAtivo(true);
     }
 
-    // ==================== TESTES DE TRANSFERÊNCIA BEM-SUCEDIDA ====================
 
     @Test
-    @DisplayName("✅ Deve executar transferência com sucesso")
+    @DisplayName("Deve executar transferência com sucesso")
     void deveExecutarTransferenciaComSucesso() {
-        // Arrange
         BigDecimal valor = new BigDecimal("100.00");
         BigDecimal saldoOrigemAntes = origem.getValor();
         BigDecimal saldoDestinoAntes = destino.getValor();
@@ -82,10 +65,8 @@ class BeneficioEjbServiceTest {
         when(entityManager.merge(any(Beneficio.class))).thenAnswer(i -> i.getArgument(0));
         doNothing().when(entityManager).flush();
 
-        // Act
         ejbService.transfer(1L, 2L, valor);
 
-        // Assert: Saldos devem ter mudado
         assertThat(origem.getValor())
                 .as("Saldo da origem deve ter sido debitado")
                 .isEqualByComparingTo(saldoOrigemAntes.subtract(valor));
@@ -94,7 +75,6 @@ class BeneficioEjbServiceTest {
                 .as("Saldo do destino deve ter sido creditado")
                 .isEqualByComparingTo(saldoDestinoAntes.add(valor));
 
-        // Assert: Métodos do EntityManager foram chamados
         verify(entityManager).find(Beneficio.class, 1L);
         verify(entityManager).find(Beneficio.class, 2L);
         verify(entityManager, times(2)).merge(any(Beneficio.class));
@@ -102,29 +82,24 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("✅ Deve debitar origem e creditar destino corretamente")
+    @DisplayName("Deve debitar origem e creditar destino corretamente")
     void deveDebitarOrigemECreditarDestinoCorretamente() {
-        // Arrange
         BigDecimal valor = new BigDecimal("250.00");
 
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
         when(entityManager.merge(any(Beneficio.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
         ejbService.transfer(1L, 2L, valor);
 
-        // Assert
-        assertThat(origem.getValor()).isEqualByComparingTo(new BigDecimal("750.00")); // 1000 - 250
-        assertThat(destino.getValor()).isEqualByComparingTo(new BigDecimal("750.00")); // 500 + 250
+        assertThat(origem.getValor()).isEqualByComparingTo(new BigDecimal("750.00"));
+        assertThat(destino.getValor()).isEqualByComparingTo(new BigDecimal("750.00"));
     }
 
-    // ==================== TESTES DE VALIDAÇÃO DE PARÂMETROS ====================
 
     @Test
-    @DisplayName("❌ Deve falhar se fromId é null")
+    @DisplayName("Deve falhar se fromId é null")
     void deveFalharSeFromIdEhNull() {
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(null, 2L, new BigDecimal("100.00")))
                 .isInstanceOf(TransferenciaInvalidaException.class)
                 .hasMessageContaining("origem não pode ser nulo");
@@ -133,9 +108,8 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se toId é null")
+    @DisplayName("Deve falhar se toId é null")
     void deveFalharSeToIdEhNull() {
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, null, new BigDecimal("100.00")))
                 .isInstanceOf(TransferenciaInvalidaException.class)
                 .hasMessageContaining("destino não pode ser nulo");
@@ -144,9 +118,8 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se IDs são iguais")
+    @DisplayName("Deve falhar se IDs são iguais")
     void deveFalharSeIdsIguais() {
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 1L, new BigDecimal("100.00")))
                 .isInstanceOf(TransferenciaInvalidaException.class)
                 .hasMessageContaining("mesmo benefício");
@@ -155,12 +128,10 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se benefício origem não existe")
+    @DisplayName("Deve falhar se benefício origem não existe")
     void deveFalharSeBeneficioOrigemNaoExiste() {
-        // Arrange
         when(entityManager.find(Beneficio.class, 999L)).thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(999L, 2L, new BigDecimal("100.00")))
                 .isInstanceOf(BeneficioNotFoundException.class)
                 .hasMessageContaining("999");
@@ -169,13 +140,11 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se benefício destino não existe")
+    @DisplayName("Deve falhar se benefício destino não existe")
     void deveFalharSeBeneficioDestinoNaoExiste() {
-        // Arrange
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 999L)).thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 999L, new BigDecimal("100.00")))
                 .isInstanceOf(BeneficioNotFoundException.class)
                 .hasMessageContaining("999");
@@ -184,18 +153,15 @@ class BeneficioEjbServiceTest {
         verify(entityManager).find(Beneficio.class, 999L);
     }
 
-    // ==================== TESTES DE SALDO INSUFICIENTE ====================
 
     @Test
-    @DisplayName("❌ Deve falhar se saldo insuficiente")
+    @DisplayName("Deve falhar se saldo insuficiente")
     void deveFalharSeSaldoInsuficiente() {
-        // Arrange
-        BigDecimal valorExcessivo = new BigDecimal("2000.00"); // Maior que saldo (1000)
+        BigDecimal valorExcessivo = new BigDecimal("2000.00");
 
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 2L, valorExcessivo))
                 .isInstanceOf(SaldoInsuficienteException.class)
                 .hasMessageContaining("Saldo insuficiente")
@@ -207,35 +173,29 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("✅ Deve permitir transferir saldo completo")
+    @DisplayName("Deve permitir transferir saldo completo")
     void devePermitirTransferirSaldoCompleto() {
-        // Arrange
-        BigDecimal saldoCompleto = origem.getValor(); // 1000.00
+        BigDecimal saldoCompleto = origem.getValor();
 
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
         when(entityManager.merge(any(Beneficio.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
         ejbService.transfer(1L, 2L, saldoCompleto);
 
-        // Assert
         assertThat(origem.getValor()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(destino.getValor()).isEqualByComparingTo(new BigDecimal("1500.00"));
     }
 
-    // ==================== TESTES DE BENEFÍCIO INATIVO ====================
 
     @Test
-    @DisplayName("❌ Deve falhar se benefício origem está inativo")
+    @DisplayName("Deve falhar se benefício origem está inativo")
     void deveFalharSeBeneficioOrigemEstaInativo() {
-        // Arrange
         origem.setAtivo(false);
 
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 2L, new BigDecimal("100.00")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("inativo");
@@ -244,15 +204,13 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve falhar se benefício destino está inativo")
+    @DisplayName("Deve falhar se benefício destino está inativo")
     void deveFalharSeBeneficioDestinoEstaInativo() {
-        // Arrange
         destino.setAtivo(false);
 
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 2L, new BigDecimal("100.00")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("inativo");
@@ -260,39 +218,31 @@ class BeneficioEjbServiceTest {
         verify(entityManager, never()).merge(any());
     }
 
-    // ==================== TESTES DE OPTIMISTIC LOCKING ====================
 
     @Test
-    @DisplayName("🔒 Deve lançar OptimisticLockException em conflito de versão")
+    @DisplayName("Deve lançar OptimisticLockException em conflito de versão")
     void deveLancarOptimisticLockExceptionEmConflitoDeVersao() {
-        // Arrange
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
         when(entityManager.find(Beneficio.class, 2L)).thenReturn(destino);
         when(entityManager.merge(any(Beneficio.class))).thenReturn(origem);
 
-        // Simular conflito de versão no flush
         doThrow(new OptimisticLockException("Conflito de versão"))
                 .when(entityManager).flush();
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.transfer(1L, 2L, new BigDecimal("100.00")))
                 .isInstanceOf(OptimisticLockException.class);
 
         verify(entityManager).flush();
     }
 
-    // ==================== TESTES DE BUSCA DE BENEFÍCIO ====================
 
     @Test
-    @DisplayName("✅ Deve buscar benefício por ID com sucesso")
+    @DisplayName("Deve buscar benefício por ID com sucesso")
     void deveBuscarBeneficioPorIdComSucesso() {
-        // Arrange
         when(entityManager.find(Beneficio.class, 1L)).thenReturn(origem);
 
-        // Act
         Beneficio resultado = ejbService.findBeneficioById(1L);
 
-        // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getId()).isEqualTo(1L);
         assertThat(resultado.getNome()).isEqualTo("Benefício Origem");
@@ -301,12 +251,10 @@ class BeneficioEjbServiceTest {
     }
 
     @Test
-    @DisplayName("❌ Deve lançar exceção se benefício não encontrado na busca")
+    @DisplayName("Deve lançar exceção se benefício não encontrado na busca")
     void deveLancarExcecaoSeBeneficioNaoEncontradoNaBusca() {
-        // Arrange
         when(entityManager.find(Beneficio.class, 999L)).thenReturn(null);
 
-        // Act & Assert
         assertThatThrownBy(() -> ejbService.findBeneficioById(999L))
                 .isInstanceOf(BeneficioNotFoundException.class)
                 .hasMessageContaining("999");

@@ -1,0 +1,87 @@
+<div class="container">
+  <div class="page-header">
+    <h1>{{ isEditMode() ? '✏️ Editar Benefício' : '➕ Novo Benefício' }}</h1>
+  </div>
+
+  <div *ngIf="isLoading()" class="spinner"></div>
+
+  <div *ngIf="!isLoading()" class="card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <div class="form-group">
+        <label for="nome">Nome *</label>
+        <input
+          type="text"
+          id="nome"
+          formControlName="nome"
+          class="form-control"
+          [class.invalid]="hasError('nome', 'required') || hasError('nome', 'minlength')"
+          placeholder="Ex: Vale Refeição"
+        />
+        <div class="error-message" *ngIf="getErrorMessage('nome')">
+          {{ getErrorMessage('nome') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="descricao">Descrição *</label>
+        <textarea
+          id="descricao"
+          formControlName="descricao"
+          class="form-control"
+          [class.invalid]="hasError('descricao', 'required') || hasError('descricao', 'minlength')"
+          rows="3"
+          placeholder="Ex: Benefício para refeições em restaurantes"
+        ></textarea>
+        <div class="error-message" *ngIf="getErrorMessage('descricao')">
+          {{ getErrorMessage('descricao') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="valor">Valor (R$) *</label>
+        <input
+          type="number"
+          id="valor"
+          formControlName="valor"
+          class="form-control"
+          [class.invalid]="hasError('valor', 'required') || hasError('valor', 'min')"
+          placeholder="0.00"
+          step="0.01"
+          min="0"
+        />
+        <div class="error-message" *ngIf="getErrorMessage('valor')">
+          {{ getErrorMessage('valor') }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="checkbox-wrapper">
+          <input
+            type="checkbox"
+            id="ativo"
+            formControlName="ativo"
+          />
+          <label for="ativo">Benefício ativo</label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="onCancel()"
+          [disabled]="isLoading()">
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="isLoading()">
+          {{ isEditMode() ? '💾 Salvar' : '➕ Criar' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

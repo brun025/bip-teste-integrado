@@ -1,0 +1,67 @@
+<div class="dialog-container">
+  <h2 class="dialog-title">💸 Transferir Valor</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+    <div class="form-group">
+      <label>De:</label>
+      <div class="beneficio-info">
+        <strong>{{ data.beneficioOrigem.nome }}</strong>
+        <span class="saldo">Saldo: {{ formatCurrency(data.beneficioOrigem.valor) }}</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="toId">Para: *</label>
+      <select
+        id="toId"
+        formControlName="toId"
+        class="form-control"
+        [class.invalid]="hasError('toId', 'required')"
+      >
+        <option [value]="null">Selecione um benefício</option>
+        <option *ngFor="let beneficio of beneficiosDestino" [value]="beneficio.id">
+          {{ beneficio.nome }} - {{ formatCurrency(beneficio.valor) }}
+        </option>
+      </select>
+      <div class="error-message" *ngIf="getErrorMessage('toId')">
+        {{ getErrorMessage('toId') }}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="amount">Valor (R$): *</label>
+      <input
+        type="number"
+        id="amount"
+        formControlName="amount"
+        class="form-control"
+        [class.invalid]="hasError('amount', 'min') || hasError('amount', 'max')"
+        placeholder="0.00"
+        step="0.01"
+        min="0"
+        [max]="saldoOrigem"
+      />
+      <div class="error-message" *ngIf="getErrorMessage('amount')">
+        {{ getErrorMessage('amount') }}
+      </div>
+    </div>
+
+    <div class="dialog-actions">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="onCancel()"
+        [disabled]="isLoading()">
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        class="btn btn-success"
+        [disabled]="isLoading()">
+        {{ isLoading() ? '⏳ Transferindo...' : '💸 Transferir' }}
+      </button>
+    </div>
+
+  </form>
+</div>
